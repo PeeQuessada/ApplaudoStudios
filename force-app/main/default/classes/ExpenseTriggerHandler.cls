@@ -12,5 +12,6 @@ public with sharing class ExpenseTriggerHandler extends TriggerHandler {
         GenerateRecurrenceExpenses generateRecurrenceExpensesHandler = new GenerateRecurrenceExpenses();
         generateRecurrenceExpensesHandler.generateRecurrence(this.newExpenses);
         generateRecurrenceExpensesHandler.generateWeekly(this.newExpenses);
+        generateRecurrenceExpensesHandler.generateMonthly(this.newExpenses);
     }
 }
