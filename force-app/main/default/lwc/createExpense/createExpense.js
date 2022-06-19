@@ -23,7 +23,7 @@ export default class CreateExpense extends LightningElement {
 
     get recordTypeId() {
         const rtis = this.objectInfo.data.recordTypeInfos;
-        return Object.keys(rtis).find(rti => rtis[rti].name === 'Master');
+        return Object.keys(rtis).find(rti => rtis[rti].name === 'Default');
     }
 
     @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: CATEGORY_FIELD })
@@ -152,13 +152,14 @@ export default class CreateExpense extends LightningElement {
             fields.WeeklyRecurrence__c = this.weeklyValue;
         }
         else if(this.recurenceOption == 'monthly') {
+            console.log('monthly ', this.monthlyValue.split('-')[2])
             fields.MonthlyRecurrence__c = this.monthlyValue.split('-')[2];
         }
-
+        
         // LDS method to create record.
         createRecord({'apiName' : 'Expense__c', fields})
             .then(response => {
-                this.dispatchToast('Success', 'Expense created with Id: ' +response.id, 'success');
+                this.dispatchToast('Success', 'Expense created ');
             }).catch(error => {
                 this.dispatchToast('Error', error, 'error');
                 console.log(error);

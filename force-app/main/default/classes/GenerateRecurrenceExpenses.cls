@@ -6,7 +6,7 @@ public class GenerateRecurrenceExpenses {
     private Schema.SObjectField externalIdField;
    
     public GenerateRecurrenceExpenses() {
-        this.todayDate = Date.newInstance(System.today().year(), System.today().month(), 1);//System.today();
+        this.todayDate = System.today();
         this.todayDateTime = (DateTime) todayDate;
         this.externalIdField = Expense__c.Fields.ExternalId__c;
         this.defaultRecordTypeId = Schema.SObjectType.Expense__c.getRecordTypeInfosByDeveloperName().get('Default').getRecordTypeId();
@@ -36,6 +36,7 @@ public class GenerateRecurrenceExpenses {
                 recurrenceExpense.Date__c = expense.Date__c;
                 recurrenceExpense.Name = expense.Name;
                 recurrenceExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
+                recurrenceExpense.MonthlyRecurrence__c = expense.MonthlyRecurrence__c;
                 recurrenceExpense.ExternalId__c = expense.Name + expense.Date__c + expense.Amount__c + this.recurrenceRecordTypeId;
                 createRecurrenceExpenses.add(recurrenceExpense);
             }
@@ -44,10 +45,6 @@ public class GenerateRecurrenceExpenses {
         if(!createRecurrenceExpenses.isEmpty()) {
             Database.upsert(createRecurrenceExpenses, this.externalIdField, true);
         }
-
-    }
-
-    public void generateExpense(List<Expense__c> newExpenses) {
 
     }
     
@@ -100,7 +97,7 @@ public class GenerateRecurrenceExpenses {
                 defaultExpense.Date__c = this.todayDate.addDays(moreDay-1);
                 defaultExpense.Name = expense.Name;
                 defaultExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
-                defaultExpense.ExternalId__c = expense.Name + this.todayDate.addDays(moreDay-1) + expense.Amount__c + this.defaultRecordTypeId;
+                defaultExpense.ExternalId__c = defaultExpense.Name + defaultExpense.Date__c + defaultExpense.Amount__c + this.defaultRecordTypeId;
                 expenses.add(defaultExpense);
             }
         }
@@ -126,9 +123,10 @@ public class GenerateRecurrenceExpenses {
         }
 
         Map<String, List<Expense__c>> mapDayByExpenses = new Map<String, List<Expense__c>>();
-        for(Expense__c expense : recurrenceExpenses) {
-            String dayOfWeek = String.valueOf(expense.MonthlyRecurrence__c);
-
+        for(Expense__c expense : monthlyExpenses) {
+            
+            String dayOfWeek = String.valueOf(Integer.valueOf(expense.MonthlyRecurrence__c));
+            
             if(!mapDayByExpenses.containsKey(dayOfWeek)) {
                 mapDayByExpenses.put(dayOfWeek, new List<Expense__c>());
             }
@@ -137,30 +135,33 @@ public class GenerateRecurrenceExpenses {
         }
 
         Integer maxDaysinThisMonth = Date.daysInMonth(this.todayDate.year(), this.todayDate.month());
-        
-        for(Integer moreDay = 0; moreDay <= maxDaysinThisMonth; moreDay++) {
-            Datetime actualyDate = todayDateTime.addDays(moreDay);
-            String dayOfWeek = String.valueOf(maxDaysinThisMonth);
-
-            if(!mapDayByExpenses.containsKey(dayOfWeek)) {
+        System.debug('mapDayByExpenses ' + mapDayByExpenses);
+        for(Integer day = 1; day <= maxDaysinThisMonth; day++) {
+            String strDay = String.valueOf(day);
+            System.debug('strDay ' + strDay);
+            if(!mapDayByExpenses.containsKey(strDay)) {
                 continue;
             }
-
-            for(Expense__c expense : mapDayByExpenses.get(dayOfWeek)) {
+            System.debug('mapDayByExpenses ' + mapDayByExpenses.get(strDay));
+            for(Expense__c expense : mapDayByExpenses.get(strDay)) {
+                System.debug('expense ' + expense);
                 Expense__c defaultExpense = new Expense__c();
                 defaultExpense.RecordTypeId = this.defaultRecordTypeId;
                 defaultExpense.Amount__c = expense.Amount__c;
                 defaultExpense.Category__c = expense.Category__c;
                 defaultExpense.Date__c = Date.newInstance(this.todayDate.year(), this.todayDate.month(), Integer.valueOf(expense.MonthlyRecurrence__c));
+                System.debug('this.todayDate.month() ' + this.todayDate.month());
                 defaultExpense.Name = expense.Name;
                 defaultExpense.MonthlyRecurrence__c = expense.MonthlyRecurrence__c;
+                defaultExpense.ExternalId__c = defaultExpense.Name + defaultExpense.Date__c + defaultExpense.Amount__c + this.defaultRecordTypeId;
                 expenses.add(defaultExpense);
             }
         }
 
         if(!expenses.isEmpty()) {
             TriggerHandler.bypass('ExpenseTriggerHandler');
-            Database.insert(expenses, true);
+            System.debug('expenses ' + expenses);
+            Database.upsert(expenses, this.externalIdField, true);
         }
     }
 }

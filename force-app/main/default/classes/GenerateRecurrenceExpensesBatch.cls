@@ -8,11 +8,12 @@ global with sharing class GenerateRecurrenceExpensesBatch implements Database.Ba
                 'Date__c = LAST_MONTH AND ' +
                 '(MonthlyRecurrence__c != NULL OR ' +
                 'WeeklyRecurrence__c != NULL)';
-
+        System.debug('aaa ' + Database.query(query));
         return Database.getQueryLocator(query);
     }
     
     global void execute(Database.BatchableContext batchableContext, List<Expense__c> recurrenceExpenses) {
+        System.debug('run');
         try {
             GenerateRecurrenceExpenses generateRecurrenceExpenses = new GenerateRecurrenceExpenses();
             generateRecurrenceExpenses.generateMonthly(recurrenceExpenses);
