@@ -6,15 +6,13 @@ public class GenerateRecurrenceExpenses {
    
     public GenerateRecurrenceExpenses() {
         this.todayDate = System.today();
-        this.todayDateTime = (DateTime) System.today();
+        this.todayDateTime = (DateTime) todayDate;
         this.defaultRecordTypeId = Schema.SObjectType.Expense__c.getRecordTypeInfosByDeveloperName().get('Default').getRecordTypeId();
         this.recurrenceRecordTypeId = Schema.SObjectType.Expense__c.getRecordTypeInfosByDeveloperName().get('Recurrence').getRecordTypeId();
     }
 
     public void generateRecurrence(List<Expense__c> newExpenses) {
         List<Expense__c> defaultExpenses = new List<Expense__c>();
-
-        // Validar recordType do registro == default
 
         for(Expense__c expense : newExpenses) {
             if(expense.RecordTypeId == this.defaultRecordTypeId) {
@@ -35,7 +33,6 @@ public class GenerateRecurrenceExpenses {
                 recurrenceExpense.Category__c = expense.Category__c;
                 recurrenceExpense.Date__c = expense.Date__c;
                 recurrenceExpense.Name = expense.Name;
-                recurrenceExpense.Recurrence__c = expense.Recurrence__c;
                 recurrenceExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
                 createRecurrenceExpenses.add(recurrenceExpense);
             }
@@ -77,10 +74,14 @@ public class GenerateRecurrenceExpenses {
         }
         
 
-        // criar registros para o restante do mes
         Integer maxDaysinThisMonth = Date.daysInMonth(this.todayDate.year(), this.todayDate.month());
-        maxDaysinThisMonth = maxDaysinThisMonth - this.todayDate.day();
-        for(Integer moreDay = 1; moreDay <= maxDaysinThisMonth; moreDay++) {
+        Integer startDay = 0;
+        if(Trigger.isExecuting) {
+            maxDaysinThisMonth = maxDaysinThisMonth - this.todayDate.day();
+            startDay = 1;
+        }
+        
+        for(Integer moreDay = startDay; moreDay <= maxDaysinThisMonth; moreDay++) {
             Datetime actualyDate = todayDateTime.addDays(moreDay);
             String dayOfWeek = actualyDate.format('EEEE');
 
@@ -95,7 +96,6 @@ public class GenerateRecurrenceExpenses {
                 defaultExpense.Category__c = expense.Category__c;
                 defaultExpense.Date__c = this.todayDate.addDays(moreDay-1);
                 defaultExpense.Name = expense.Name;
-                defaultExpense.Recurrence__c = expense.Recurrence__c;
                 defaultExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
                 expenses.add(defaultExpense);
             }
@@ -107,21 +107,56 @@ public class GenerateRecurrenceExpenses {
         }
     }
 
-    private List<Expense__c> generateMonthly(List<Expense__c> newExpenses) {
+    public void generateMonthly(List<Expense__c> recurrenceExpenses) {
         List<Expense__c> expenses = new List<Expense__c>();
 
-        if(newExpenses.isEmpty()) {
-            return expenses;
+        List<Expense__c> monthlyExpenses = new List<Expense__c>();
+        for(Expense__c expense : recurrenceExpenses) {
+            if(expense.RecordTypeId == this.recurrenceRecordTypeId && expense.MonthlyRecurrence__c != null) {
+                monthlyExpenses.add(expense);
+            }
         }
 
-        // criar registros para o restante do mes
+        if(monthlyExpenses.isEmpty()) {
+            return;
+        }
 
-            // for nos dias restantes do mes
+        Map<String, List<Expense__c>> mapDayByExpenses = new Map<String, List<Expense__c>>();
+        for(Expense__c expense : recurrenceExpenses) {
+            String dayOfWeek = String.valueOf(expense.MonthlyRecurrence__c);
 
-                // pega o dia do mes (1, 2, 3...)
-                // pego todas as despesas para esse dia da semana (pegar do map)
-                // duplicar todos os campos execeto o dia
+            if(!mapDayByExpenses.containsKey(dayOfWeek)) {
+                mapDayByExpenses.put(dayOfWeek, new List<Expense__c>());
+            }
 
-        return expenses;
+            mapDayByExpenses.get(dayOfWeek).add(expense);
+        }
+
+        Integer maxDaysinThisMonth = Date.daysInMonth(this.todayDate.year(), this.todayDate.month());
+        
+        for(Integer moreDay = 0; moreDay <= maxDaysinThisMonth; moreDay++) {
+            Datetime actualyDate = todayDateTime.addDays(moreDay);
+            String dayOfWeek = String.valueOf(maxDaysinThisMonth);
+
+            if(!mapDayByExpenses.containsKey(dayOfWeek)) {
+                continue;
+            }
+
+            for(Expense__c expense : mapDayByExpenses.get(dayOfWeek)) {
+                Expense__c defaultExpense = new Expense__c();
+                defaultExpense.RecordTypeId = this.defaultRecordTypeId;
+                defaultExpense.Amount__c = expense.Amount__c;
+                defaultExpense.Category__c = expense.Category__c;
+                defaultExpense.Date__c = Date.newInstance(this.todayDate.year(), this.todayDate.month(), Integer.valueOf(expense.MonthlyRecurrence__c));
+                defaultExpense.Name = expense.Name;
+                defaultExpense.MonthlyRecurrence__c = expense.MonthlyRecurrence__c;
+                expenses.add(defaultExpense);
+            }
+        }
+
+        if(!expenses.isEmpty()) {
+            TriggerHandler.bypass('ExpenseTriggerHandler');
+            Database.insert(expenses, true);
+        }
     }
 }
