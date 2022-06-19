@@ -34,7 +34,7 @@ public class GenerateRecurrenceExpenses {
                 recurrenceExpense.Amount__c = expense.Amount__c;
                 recurrenceExpense.Category__c = expense.Category__c;
                 recurrenceExpense.Date__c = expense.Date__c;
-                recurrenceExpense.Name = expense.Name + ' - Recurrence ';
+                recurrenceExpense.Name = expense.Name;
                 recurrenceExpense.Recurrence__c = expense.Recurrence__c;
                 recurrenceExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
                 createRecurrenceExpenses.add(recurrenceExpense);
@@ -48,55 +48,21 @@ public class GenerateRecurrenceExpenses {
     }
 
     public void generateExpense(List<Expense__c> newExpenses) {
+
+    }
+    
+    public void generateWeekly(List<Expense__c> newExpenses) {
         List<Expense__c> expenses = new List<Expense__c>();
 
-        // Validar recordType do registro == Recurrence
-        List<Expense__c> recurrenceExpenses = new List<Expense__c>();
-
-        for(Expense__c expense : newExpenses) {
-            if(expense.RecordTypeId == this.recurrenceRecordTypeId) {
-                recurrenceExpenses.add(expense);
-            }
-        }
-
-        if(recurrenceExpenses.isEmpty()) {
-            return;
-        }
-
-        List<Expense__c> monthlyExpenses = new List<Expense__c>();
-        // Validar se eh despesa mensal
-            // se sim colocar em um map, onde a chave eh o dia do mes e o valor eh uma lista de despesas
-        for(Expense__c expense : recurrenceExpenses) {
-            if(expense.MonthlyRecurrence__c != null) {
-                monthlyExpenses.add(expense);
-            }
-        }
-
-        
         List<Expense__c> weeklyExpenses = new List<Expense__c>();
-        // Validar se eh despesa semanal
-            // se sim colocar em um map, onde a chave eh o dia do mes e o valor eh uma lista de despesas
-        for(Expense__c expense : recurrenceExpenses) {
-            if(expense.WeeklyRecurrence__c != null) {
+        for(Expense__c expense : newExpenses) {
+            if(expense.RecordTypeId == this.recurrenceRecordTypeId && expense.WeeklyRecurrence__c != null) {
                 weeklyExpenses.add(expense);
             }
         }
 
-        //expenses.addAll(this.generateMonthly(monthlyExpenses));
-        expenses.addAll(this.generateWeekly(weeklyExpenses));
-
-        if(!expenses.isEmpty()) {
-            TriggerHandler.bypass('ExpenseTriggerHandler');
-            Database.insert(expenses, true);
-        }
-        
-    }
-    
-    private List<Expense__c> generateWeekly(List<Expense__c> newExpenses) {
-        List<Expense__c> expenses = new List<Expense__c>();
-
-        if(newExpenses.isEmpty()) {
-            return expenses;
+        if(weeklyExpenses.isEmpty()) {
+            return;
         }
 
         Map<String, List<Expense__c>> mapDayByExpenses = new Map<String, List<Expense__c>>();
@@ -135,7 +101,10 @@ public class GenerateRecurrenceExpenses {
             }
         }
 
-        return expenses;
+        if(!expenses.isEmpty()) {
+            TriggerHandler.bypass('ExpenseTriggerHandler');
+            Database.insert(expenses, true);
+        }
     }
 
     private List<Expense__c> generateMonthly(List<Expense__c> newExpenses) {
