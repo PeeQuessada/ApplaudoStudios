@@ -5,7 +5,7 @@ global with sharing class GenerateRecurrenceExpensesBatch implements Database.Ba
             'SELECT Id, Amount__c, Category__c, Date__c, Name, MonthlyRecurrence__c, WeeklyRecurrence__c, RecordTypeId FROM Expense__c ' +
             'WHERE ' +
                 'RecordType.DeveloperName = \'Recurrence\' AND ' +
-                'Date__c = THIS_MONTH AND ' +
+                'Date__c = LAST_MONTH AND ' +
                 '(MonthlyRecurrence__c != NULL OR ' +
                 'WeeklyRecurrence__c != NULL)';
 
