@@ -1,0 +1,69 @@
+<template>
+    <div class="slds-grid slds-gutters slds-grid_align-center">
+        <div class="slds-col slds-size_1-of-1">
+            <lightning-card title="New Expense">
+                <div class="slds-grid slds-gutters slds-wrap slds-p-horizontal_medium">
+                    <div class="slds-size_1-of-1 slds-grid slds-gutters slds-wrap ">
+                        <div class="slds-col slds-size_1-of-2 c-default-fields-lef">
+                            <lightning-input type="text" value={labelValue} label="Expense Label" data-id="labelValue" onchange={changeFieldValue} required></lightning-input>
+                            <lightning-combobox
+                                label="Category"
+                                value={categoryValue}
+                                placeholder="Select a category"
+                                options={categoryOptions}
+                                onchange={changeFieldValue} 
+                                data-id="categoryValue"
+                                required="">
+                            </lightning-combobox>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2 c-default-fields-right">
+                            <lightning-input type="Date" value={dateValue} label="Date" data-id="dateValue" onchange={changeFieldValue} required></lightning-input>
+                            <lightning-input type="Number" value={amountValue} label="Amount" data-id="amountValue" onchange={changeFieldValue} required></lightning-input>
+                        </div>
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning-radio-group 
+                                name="Recurrence?"
+                                label="Recurrence?"
+                                options={isRecurenceOptions}
+                                value={recurenceOption}
+                                onchange={changeFieldValue}
+                                data-id="recurenceOption"
+                                type="button">
+                            </lightning-radio-group>
+                        </div>
+                    </div>
+                    <template if:true={isWeekly}>
+                        <div class="slds-col slds-size_1-of-1 c-recurrence-fields-week">
+                            <lightning-radio-group 
+                                name="weekly"
+                                label="Weekly"
+                                options={weeklyOptions}
+                                value={weeklyValue}
+                                onchange={changeFieldValue}
+                                data-id="weeklyValue"
+                                type="button"
+                                required>
+                            </lightning-radio-group>
+                        </div>
+                    </template>
+                    <template if:true={isMonthly}>
+                        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-4 slds-large-size_1-of-4 c-recurrence-fields-month">
+                            <lightning-input type="Date" value={monthlyValue} data-id="monthlyValue" onchange={changeFieldValue} label="Choice a day" required></lightning-input>
+                        </div>
+                    </template>
+                </div>
+                <div slot="footer" class="slds-grid slds-gutters slds-grid_align-center"> 
+                    <div class="slds-col">
+                        <lightning-button label="Cancel"></lightning-button>
+                    </div>
+                    <div class="slds-col">
+                        <lightning-button label="Save & New" onclick={saveAndNew}></lightning-button>    
+                    </div>
+                    <div class="slds-col">
+                        <lightning-button label="New" variant="brand" onclick={createRecord}></lightning-button>
+                    </div>
+                </div>
+            </lightning-card>
+        </div>    
+    </div>
+</template>
