@@ -3,10 +3,12 @@ public class GenerateRecurrenceExpenses {
     private Datetime todayDateTime;
     private Id defaultRecordTypeId;
     private Id recurrenceRecordTypeId;
+    private Schema.SObjectField externalIdField;
    
     public GenerateRecurrenceExpenses() {
-        this.todayDate = System.today();
+        this.todayDate = Date.newInstance(System.today().year(), System.today().month(), 1);//System.today();
         this.todayDateTime = (DateTime) todayDate;
+        this.externalIdField = Expense__c.Fields.ExternalId__c;
         this.defaultRecordTypeId = Schema.SObjectType.Expense__c.getRecordTypeInfosByDeveloperName().get('Default').getRecordTypeId();
         this.recurrenceRecordTypeId = Schema.SObjectType.Expense__c.getRecordTypeInfosByDeveloperName().get('Recurrence').getRecordTypeId();
     }
@@ -34,12 +36,13 @@ public class GenerateRecurrenceExpenses {
                 recurrenceExpense.Date__c = expense.Date__c;
                 recurrenceExpense.Name = expense.Name;
                 recurrenceExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
+                recurrenceExpense.ExternalId__c = expense.Name + expense.Date__c + expense.Amount__c + this.recurrenceRecordTypeId;
                 createRecurrenceExpenses.add(recurrenceExpense);
             }
         }      
         
         if(!createRecurrenceExpenses.isEmpty()) {
-            Database.insert(createRecurrenceExpenses, true);
+            Database.upsert(createRecurrenceExpenses, this.externalIdField, true);
         }
 
     }
@@ -97,13 +100,14 @@ public class GenerateRecurrenceExpenses {
                 defaultExpense.Date__c = this.todayDate.addDays(moreDay-1);
                 defaultExpense.Name = expense.Name;
                 defaultExpense.WeeklyRecurrence__c = expense.WeeklyRecurrence__c;
+                defaultExpense.ExternalId__c = expense.Name + this.todayDate.addDays(moreDay-1) + expense.Amount__c + this.defaultRecordTypeId;
                 expenses.add(defaultExpense);
             }
         }
 
         if(!expenses.isEmpty()) {
             TriggerHandler.bypass('ExpenseTriggerHandler');
-            Database.insert(expenses, true);
+            Database.upsert(expenses, externalIdField, true);
         }
     }
 
